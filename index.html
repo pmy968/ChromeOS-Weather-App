@@ -49,7 +49,7 @@
     </div>
   </div>
 
-  <!-- Weather Alerts section (hidden initially) -->
+   <!-- Weather Alerts section (hidden initially) -->
   <div id="alerts" class="bg-yellow-100 dark:bg-yellow-300 text-yellow-900 dark:text-yellow-950 p-4 rounded-xl shadow-md my-4 hidden">
     <h2 class="text-xl font-semibold mb-2">⚠️ Weather Alerts</h2>
     <ul id="alert-list" class="space-y-2"></ul>
@@ -66,6 +66,39 @@
       // Call the function to load weather alerts
       loadWeatherAlerts(); 
     });
+
+    // Define loadWeatherAlerts here or link to an external script file
+    async function loadWeatherAlerts() {
+      try {
+        const res = await fetch("https://nws-alerts-proxy.onrender.com/nws-alerts");
+        const data = await res.json();
+
+        const alerts = data.features.filter(alert => {
+          const areaDesc = alert.properties.areaDesc || '';
+          return areaDesc.includes("Waukesha") || areaDesc.includes("Oconomowoc");
+        });
+
+        const alertsContainer = document.getElementById('alerts');
+        const alertList = document.getElementById('alert-list');
+
+        if (alerts.length > 0) {
+          alertList.innerHTML = ''; // clear any existing alerts
+          alerts.forEach(alert => {
+            const li = document.createElement('li');
+            li.innerHTML = `
+              <strong>${alert.properties.event}</strong><br>
+              <span class="text-sm">${alert.properties.headline}</span>
+            `;
+            alertList.appendChild(li);
+          });
+          alertsContainer.classList.remove('hidden');
+        } else {
+          alertsContainer.classList.add('hidden');
+        }
+      } catch (error) {
+        console.error('Failed to fetch weather alerts:', error);
+      }
+    }
   </script>
 </body>
 </html>
