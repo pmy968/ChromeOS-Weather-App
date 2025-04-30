@@ -30,6 +30,38 @@ function fetchCurrentWeather() {
     });
 }
 
+async function loadWeatherAlerts() {
+  try {
+    const res = await fetch("https://nws-alerts-proxy.onrender.com/nws-alerts");
+    const data = await res.json();
+
+    const alerts = data.features.filter(alert => {
+      const areaDesc = alert.properties.areaDesc || '';
+      return areaDesc.includes("Waukesha") || areaDesc.includes("Oconomowoc");
+    });
+
+    const alertsContainer = document.getElementById('alerts');
+    const alertList = document.getElementById('alert-list');
+
+    if (alerts.length > 0) {
+      alertList.innerHTML = ''; // clear any existing alerts
+      alerts.forEach(alert => {
+        const li = document.createElement('li');
+        li.innerHTML = `
+          <strong>${alert.properties.event}</strong><br>
+          <span class="text-sm">${alert.properties.headline}</span>
+        `;
+        alertList.appendChild(li);
+      });
+      alertsContainer.classList.remove('hidden');
+    } else {
+      alertsContainer.classList.add('hidden');
+    }
+  } catch (error) {
+    console.error('Failed to fetch weather alerts:', error);
+  }
+}
+
 // Fetch and display forecast
 function fetchForecast() {
   fetch(forecastURL)
