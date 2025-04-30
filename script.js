@@ -57,7 +57,7 @@ function fetchAirQuality() {
 
 // Fetch and display weather alerts
 function fetchWeatherAlerts() {
-  fetch('http://localhost:3000/nws-alerts') // Replace with your deployed backend URL in production
+  fetch('https://nws-alerts-proxy.onrender.com/nws-alerts') // Replace with your deployed backend URL in production
   .then((response) => response.json())
   .then((data) => {
     let alertsHTML = '<ul>';
