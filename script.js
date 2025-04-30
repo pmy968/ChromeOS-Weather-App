@@ -1,5 +1,5 @@
 // script.js
-const apiKey = 784ff07fc3d42cf252a202c28df0e817;
+const apiKey = '784ff07fc3d42cf252a202c28df0e817';
 const location = 'Oconomowoc,WI,US'; // Location: Oconomowoc, WI 53066
 const openWeatherURL = `https://api.openweathermap.org/data/2.5/weather?q=${location}&appid=${apiKey}&units=imperial`;
 const forecastURL = `https://api.openweathermap.org/data/2.5/forecast/daily?q=${location}&cnt=7&appid=${apiKey}&units=imperial`;
