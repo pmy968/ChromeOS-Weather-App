@@ -1,7 +1,7 @@
 const lat = 43.1117;
 const lon = -88.4993;
 const nwsProxy = 'https://nws-alerts-proxy.onrender.com';
-const airQualityApiKey = 'YOUR_API_KEY'; // Replace with your IQAir API key
+const airQualityApiKey = '784ff07fc3d42cf252a202c28df0e817'; // Replace with your IQAir API key
 
 // Dark mode toggle
 document.getElementById('dark-mode-toggle').addEventListener('click', () => {
