@@ -57,16 +57,16 @@ function fetchAirQuality() {
 
 // Fetch and display weather alerts
 function fetchWeatherAlerts() {
-  fetch(alertsURL)
-    .then((response) => response.json())
-    .then((data) => {
-      let alertsHTML = '<ul>';
-      data.features.forEach((alert) => {
-        alertsHTML += `<li>${alert.properties.headline}: ${alert.properties.description}</li>`;
-      });
-      alertsHTML += '</ul>';
-      document.getElementById('alertsData').innerHTML = alertsHTML;
+  fetch('http://localhost:3000/nws-alerts') // Replace with your deployed backend URL in production
+  .then((response) => response.json())
+  .then((data) => {
+    let alertsHTML = '<ul>';
+    data.features.forEach((alert) => {
+      alertsHTML += `<li><strong>${alert.properties.headline}</strong>: ${alert.properties.description}</li>`;
     });
+    alertsHTML += '</ul>';
+    document.getElementById('alertsData').innerHTML = alertsHTML;
+  });
 }
 
 // Fetch radar image
