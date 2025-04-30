@@ -1,115 +1,117 @@
-// script.js
-const apiKey = '784ff07fc3d42cf252a202c28df0e817';
-const location = 'Oconomowoc,WI,US'; // Location: Oconomowoc, WI 53066
-const openWeatherURL = `https://api.openweathermap.org/data/2.5/weather?q=${location}&appid=${apiKey}&units=imperial`;
-const forecastURL = `https://api.openweathermap.org/data/2.5/forecast/daily?q=${location}&cnt=7&appid=${apiKey}&units=imperial`;
-const airQualityURL = `https://api.openweathermap.org/data/2.5/air_pollution?lat=43.0731&lon=-88.5012&appid=${apiKey}`; // Oconomowoc lat/lon
-const alertsURL = 'https://api.weather.gov/alerts/';
+// Configuration
+const location = {
+  city: "Oconomowoc",
+  state: "WI",
+  lat: 43.1117,
+  lon: -88.4993
+};
 
-// Dark Mode Toggle
-const darkModeToggle = document.getElementById('darkModeToggle');
-darkModeToggle.addEventListener('change', toggleDarkMode);
+const proxyUrl = "https://nws-alerts-proxy.onrender.com";
 
-function toggleDarkMode() {
-  document.body.classList.toggle('dark', darkModeToggle.checked);
-  localStorage.setItem('darkMode', darkModeToggle.checked);
+// DOM Elements
+const toggleDarkModeBtn = document.getElementById("dark-mode-toggle");
+const alertsContainer = document.getElementById("alerts");
+const forecastContainer = document.getElementById("forecast");
+const currentConditionsContainer = document.getElementById("current-conditions");
+
+// Toggle Dark Mode
+toggleDarkModeBtn.addEventListener("click", () => {
+  document.body.classList.toggle("dark");
+  toggleDarkModeBtn.textContent = document.body.classList.contains("dark") ? "Light Mode" : "Dark Mode";
+});
+
+// Fetch Functions
+async function fetchCurrentConditions() {
+  const url = `https://api.weather.gov/points/${location.lat},${location.lon}`;
+  const pointRes = await fetch(url);
+  const pointData = await pointRes.json();
+  const obsUrl = pointData.properties.observationStations;
+  const obsRes = await fetch(obsUrl);
+  const obsData = await obsRes.json();
+  const station = obsData.features[0].properties.stationIdentifier;
+  const latestObsUrl = `https://api.weather.gov/stations/${station}/observations/latest`;
+  const obs = await fetch(latestObsUrl).then(res => res.json());
+  return obs.properties;
 }
 
-// Check saved dark mode setting
-if (localStorage.getItem('darkMode') === 'true') {
-  darkModeToggle.checked = true;
-  document.body.classList.add('dark');
+async function fetchForecast() {
+  const forecastUrl = `https://api.weather.gov/points/${location.lat},${location.lon}`;
+  const pointRes = await fetch(forecastUrl);
+  const pointData = await pointRes.json();
+  const url = pointData.properties.forecast;
+  const forecast = await fetch(url).then(res => res.json());
+  return forecast.properties.periods;
 }
 
-// Fetch and display current weather
-function fetchCurrentWeather() {
-  fetch(openWeatherURL)
-    .then((response) => response.json())
-    .then((data) => {
-      document.getElementById('currentData').innerHTML = `${data.main.temp}°F, ${data.weather[0].description}`;
+async function fetchAlerts() {
+  const alertUrl = `${proxyUrl}/alerts?lat=${location.lat}&lon=${location.lon}`;
+  const res = await fetch(alertUrl);
+  const data = await res.json();
+  return data.features || [];
+}
+
+// Render Functions
+function renderCurrentConditions(data) {
+  currentConditionsContainer.innerHTML = `
+    <h2>Current Conditions</h2>
+    <p><strong>Temperature:</strong> ${data.temperature.value} °F</p>
+    <p><strong>Humidity:</strong> ${data.relativeHumidity.value}%</p>
+    <p><strong>Wind:</strong> ${data.windSpeed.value} mph ${data.windDirection.value}°</p>
+    <p><strong>Condition:</strong> ${data.textDescription}</p>
+  `;
+}
+
+function renderForecast(forecast) {
+  forecastContainer.innerHTML = "<h2>7-Day Forecast</h2>";
+  forecast.slice(0, 7).forEach(period => {
+    const card = document.createElement("div");
+    card.className = "forecast-card";
+    card.innerHTML = `
+      <h3>${period.name}</h3>
+      <p>${period.shortForecast}</p>
+      <p>${period.temperature}° ${period.temperatureUnit}</p>
+    `;
+    card.addEventListener("click", () => {
+      alert(`Details:\n\n${period.detailedForecast}`);
     });
-}
-
-// Fetch and display forecast
-function fetchForecast() {
-  fetch(forecastURL)
-    .then((response) => response.json())
-    .then((data) => {
-      let forecastHTML = '<ul>';
-      data.list.forEach((day) => {
-        const date = new Date(day.dt * 1000);
-        forecastHTML += `<li>${date.toDateString()}: ${day.temp.day}°F, ${day.weather[0].description}</li>`;
-      });
-      forecastHTML += '</ul>';
-      document.getElementById('forecastData').innerHTML = forecastHTML;
-    });
-}
-
-// Fetch and display air quality
-function fetchAirQuality() {
-  fetch(airQualityURL)
-    .then((response) => response.json())
-    .then((data) => {
-      const aqi = data.list[0].main.aqi;
-      document.getElementById('aqData').innerHTML = `AQI: ${aqi}`;
-    });
-}
-
-// Fetch and display weather alerts
-function fetchWeatherAlerts() {
-  fetch('https://nws-alerts-proxy.onrender.com/nws-alerts') // Replace with your deployed backend URL in production
-  .then((response) => response.json())
-  .then((data) => {
-    let alertsHTML = '<ul>';
-    data.features.forEach((alert) => {
-      alertsHTML += `<li><strong>${alert.properties.headline}</strong>: ${alert.properties.description}</li>`;
-    });
-    alertsHTML += '</ul>';
-    document.getElementById('alertsData').innerHTML = alertsHTML;
+    forecastContainer.appendChild(card);
   });
 }
 
-// Fetch radar image
-function fetchRadarImage() {
-  const radarURL = 'https://tilecache.rainviewer.com/v2/radar/2/256/0/0/0/0.png';
-  document.getElementById('radarImage').src = radarURL;
+function renderAlerts(alerts) {
+  alertsContainer.innerHTML = "<h2>Active Alerts</h2>";
+  if (alerts.length === 0) {
+    alertsContainer.innerHTML += "<p>No active alerts.</p>";
+    return;
+  }
+  alerts.forEach(alert => {
+    const alertEl = document.createElement("div");
+    alertEl.className = "alert";
+    alertEl.innerHTML = `
+      <h3>${alert.properties.event}</h3>
+      <p>${alert.properties.headline}</p>
+    `;
+    alertEl.addEventListener("click", () => {
+      alert(`${alert.properties.description}\n\nInstructions:\n${alert.properties.instruction}`);
+    });
+    alertsContainer.appendChild(alertEl);
+  });
 }
 
-// Card Interactions
-function showHourly() {
-  const modalContent = document.getElementById('modalContent');
-  modalContent.innerHTML = 'Hourly forecast coming soon...';
-  document.getElementById('modal').classList.remove('hidden');
+// Main Init Function
+async function init() {
+  try {
+    const [conditions, forecast, alerts] = await Promise.all([
+      fetchCurrentConditions(),
+      fetchForecast(),
+      fetchAlerts()
+    ]);
+    renderCurrentConditions(conditions);
+    renderForecast(forecast);
+    renderAlerts(alerts);
+  } catch (err) {
+    console.error("Error initializing app:", err);
+  }
 }
 
-function toggleForecastDetails() {
-  const forecastData = document.getElementById('forecastData');
-  forecastData.style.display = forecastData.style.display === 'none' ? 'block' : 'none';
-}
-
-function expandRadar() {
-  window.open('https://tilecache.rainviewer.com/v2/radar/2/256/0/0/0/0.png', '_blank');
-}
-
-function showAlerts() {
-  const modalContent = document.getElementById('modalContent');
-  modalContent.innerHTML = 'Weather alerts details coming soon...';
-  document.getElementById('modal').classList.remove('hidden');
-}
-
-function showAQDetails() {
-  const modalContent = document.getElementById('modalContent');
-  modalContent.innerHTML = 'Air Quality details coming soon...';
-  document.getElementById('modal').classList.remove('hidden');
-}
-
-function closeModal() {
-  document.getElementById('modal').classList.add('hidden');
-}
-
-// Initialize the dashboard
-fetchCurrentWeather();
-fetchForecast();
-fetchAirQuality();
-fetchWeatherAlerts();
-fetchRadarImage();
+init();
