@@ -4,53 +4,56 @@
   <meta charset="UTF-8" />
   <meta name="viewport" content="width=device-width, initial-scale=1.0"/>
   <title>Weather</title>
-  <link rel="stylesheet" href="style.css"/>
+  <link rel="stylesheet" href="style.css" />
 </head>
-<body class="bg-gray-100 dark:bg-gray-900">
+<body>
   <header>
     <h1>Oconomowoc, WI</h1>
-    <label class="switch">
-      <input type="checkbox" id="darkModeToggle"/>
-      <span class="slider round">Dark Mode</span>
-    </label>
+    <button id="dark-mode-toggle">Dark Mode</button>
   </header>
 
-  <main class="grid">
-    
-    <div class="card" onclick="showHourly()">
-      <h2>Current Weather</h2>
-      <div id="currentData">Loading...</div>
-    </div>
+  <main>
+    <!-- Current Conditions -->
+    <section id="current-conditions" class="card">
+      <h2>Current Conditions</h2>
+    </section>
 
-    <div class="card" onclick="toggleForecastDetails()">
+    <!-- Forecast -->
+    <section id="forecast" class="grid">
       <h2>7-Day Forecast</h2>
-      <div id="forecastData">Loading...</div>
-    </div>
+    </section>
 
-    <div class="card" onclick="expandRadar()">
+    <!-- Radar -->
+    <section id="radar" class="card">
       <h2>Radar</h2>
-      <img id="radarImage" src="" alt="Radar Image"/>
-    </div>
+      <iframe
+        title="Weather Radar"
+        width="100%"
+        height="500"
+        src="https://radar.weather.gov/embed/longloop.php?rid=mkx&product=NCR&overlay=11101111&loop=yes"
+        frameborder="0"
+        loading="lazy"
+      ></iframe>
+    </section>
 
-    <div class="card" onclick="showAlerts()">
-      <h2>Severe Weather Alerts</h2>
-      <div id="alertsData">Loading...</div>
-    </div>
-
-    <div class="card" onclick="showAQDetails()">
+    <!-- Air Quality -->
+    <section id="air-quality" class="card">
       <h2>Air Quality</h2>
-      <div id="aqData">Loading...</div>
-    </div>
+      <div id="air-quality-data">
+        <!-- Air quality info will be injected here -->
+      </div>
+    </section>
 
-    <script src="script.js"></script>
-    
+    <!-- Alerts -->
+    <section id="alerts" class="card alerts">
+      <h2>Severe Weather Alerts</h2>
+    </section>
   </main>
 
-  <div id="modal" class="modal hidden">
-    <div class="modal-content">
-      <span class="close" onclick="closeModal()">&times;</span>
-      <div id="modalContent"></div>
-    </div>
-  </div>
+  <footer>
+    <p>Weather data from the National Weather Service and AirNow</p>
+  </footer>
+
+  <script src="script.js"></script>
 </body>
 </html>
