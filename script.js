@@ -1,117 +1,108 @@
-// Configuration
-const location = {
-  city: "Oconomowoc",
-  state: "WI",
-  lat: 43.1117,
-  lon: -88.4993
-};
+const lat = 43.1117;
+const lon = -88.4993;
+const nwsProxy = 'https://nws-alerts-proxy.onrender.com';
+const airQualityApiKey = 'YOUR_API_KEY'; // Replace with your IQAir API key
 
-const proxyUrl = "https://nws-alerts-proxy.onrender.com";
-
-// DOM Elements
-const toggleDarkModeBtn = document.getElementById("dark-mode-toggle");
-const alertsContainer = document.getElementById("alerts");
-const forecastContainer = document.getElementById("forecast");
-const currentConditionsContainer = document.getElementById("current-conditions");
-
-// Toggle Dark Mode
-toggleDarkModeBtn.addEventListener("click", () => {
-  document.body.classList.toggle("dark");
-  toggleDarkModeBtn.textContent = document.body.classList.contains("dark") ? "Light Mode" : "Dark Mode";
+// Dark mode toggle
+document.getElementById('dark-mode-toggle').addEventListener('click', () => {
+  document.body.classList.toggle('dark');
 });
 
-// Fetch Functions
-async function fetchCurrentConditions() {
-  const url = `https://api.weather.gov/points/${location.lat},${location.lon}`;
-  const pointRes = await fetch(url);
-  const pointData = await pointRes.json();
-  const obsUrl = pointData.properties.observationStations;
-  const obsRes = await fetch(obsUrl);
-  const obsData = await obsRes.json();
-  const station = obsData.features[0].properties.stationIdentifier;
-  const latestObsUrl = `https://api.weather.gov/stations/${station}/observations/latest`;
-  const obs = await fetch(latestObsUrl).then(res => res.json());
-  return obs.properties;
+// Fetch current conditions and forecast
+async function getWeather() {
+  const pointResponse = await fetch(`https://api.weather.gov/points/${lat},${lon}`);
+  const pointData = await pointResponse.json();
+  const forecastUrl = pointData.properties.forecast;
+  const observationStationsUrl = pointData.properties.observationStations;
+
+  // Get forecast
+  const forecastResponse = await fetch(forecastUrl);
+  const forecastData = await forecastResponse.json();
+  displayForecast(forecastData.properties.periods);
+
+  // Get current conditions
+  const stationsResponse = await fetch(observationStationsUrl);
+  const stationsData = await stationsResponse.json();
+  const firstStation = stationsData.properties.stations[0];
+  const obsResponse = await fetch(`${firstStation}/observations/latest`);
+  const obsData = await obsResponse.json();
+  displayCurrentConditions(obsData.properties);
 }
 
-async function fetchForecast() {
-  const forecastUrl = `https://api.weather.gov/points/${location.lat},${location.lon}`;
-  const pointRes = await fetch(forecastUrl);
-  const pointData = await pointRes.json();
-  const url = pointData.properties.forecast;
-  const forecast = await fetch(url).then(res => res.json());
-  return forecast.properties.periods;
-}
-
-async function fetchAlerts() {
-  const alertUrl = `${proxyUrl}/alerts?lat=${location.lat}&lon=${location.lon}`;
-  const res = await fetch(alertUrl);
-  const data = await res.json();
-  return data.features || [];
-}
-
-// Render Functions
-function renderCurrentConditions(data) {
-  currentConditionsContainer.innerHTML = `
+// Display current conditions
+function displayCurrentConditions(data) {
+  const currentDiv = document.getElementById('current-conditions');
+  currentDiv.innerHTML = `
     <h2>Current Conditions</h2>
-    <p><strong>Temperature:</strong> ${data.temperature.value} °F</p>
+    <p><strong>Temperature:</strong> ${data.temperature.value} °C</p>
+    <p><strong>Wind:</strong> ${data.windDirection.value}° at ${data.windSpeed.value} m/s</p>
     <p><strong>Humidity:</strong> ${data.relativeHumidity.value}%</p>
-    <p><strong>Wind:</strong> ${data.windSpeed.value} mph ${data.windDirection.value}°</p>
-    <p><strong>Condition:</strong> ${data.textDescription}</p>
+    <p><strong>Conditions:</strong> ${data.textDescription}</p>
   `;
 }
 
-function renderForecast(forecast) {
-  forecastContainer.innerHTML = "<h2>7-Day Forecast</h2>";
-  forecast.slice(0, 7).forEach(period => {
-    const card = document.createElement("div");
-    card.className = "forecast-card";
+// Display forecast
+function displayForecast(periods) {
+  const forecastDiv = document.getElementById('forecast');
+  forecastDiv.innerHTML = '<h2>7-Day Forecast</h2>';
+  periods.forEach(period => {
+    const card = document.createElement('div');
+    card.className = 'forecast-card';
     card.innerHTML = `
       <h3>${period.name}</h3>
-      <p>${period.shortForecast}</p>
+      <img src="${period.icon}" alt="${period.shortForecast}">
       <p>${period.temperature}° ${period.temperatureUnit}</p>
+      <p>${period.shortForecast}</p>
     `;
-    card.addEventListener("click", () => {
-      alert(`Details:\n\n${period.detailedForecast}`);
+    card.addEventListener('click', () => {
+      alert(`${period.name}: ${period.detailedForecast}`);
     });
-    forecastContainer.appendChild(card);
+    forecastDiv.appendChild(card);
   });
 }
 
-function renderAlerts(alerts) {
-  alertsContainer.innerHTML = "<h2>Active Alerts</h2>";
-  if (alerts.length === 0) {
-    alertsContainer.innerHTML += "<p>No active alerts.</p>";
+// Fetch air quality data
+async function getAirQuality() {
+  try {
+    const airResponse = await fetch(`https://api.airvisual.com/v2/nearest_city?lat=${lat}&lon=${lon}&key=${airQualityApiKey}`);
+    const airData = await airResponse.json();
+    const aqi = airData.data.current.pollution.aqius;
+    const airDiv = document.getElementById('air-quality-data');
+    airDiv.innerHTML = `
+      <p><strong>Air Quality Index (US):</strong> ${aqi}</p>
+      <p><strong>Main Pollutant:</strong> ${airData.data.current.pollution.mainus}</p>
+    `;
+  } catch (error) {
+    const airDiv = document.getElementById('air-quality-data');
+    airDiv.innerHTML = '<p>Unable to load air quality data.</p>';
+    console.error('Air quality fetch error:', error);
+  }
+}
+
+// Fetch and display alerts
+async function getAlerts() {
+  const alertResponse = await fetch(`${nwsProxy}/alerts?lat=${lat}&lon=${lon}`);
+  const alertData = await alertResponse.json();
+  const alertsDiv = document.getElementById('alerts');
+
+  if (alertData.features.length === 0) {
+    alertsDiv.innerHTML += '<p>No active alerts.</p>';
     return;
   }
-  alerts.forEach(alert => {
-    const alertEl = document.createElement("div");
-    alertEl.className = "alert";
+
+  alertData.features.forEach(alert => {
+    const alertEl = document.createElement('div');
+    alertEl.className = 'alert';
     alertEl.innerHTML = `
       <h3>${alert.properties.event}</h3>
       <p>${alert.properties.headline}</p>
+      <p>${alert.properties.description}</p>
     `;
-    alertEl.addEventListener("click", () => {
-      alert(`${alert.properties.description}\n\nInstructions:\n${alert.properties.instruction}`);
-    });
-    alertsContainer.appendChild(alertEl);
+    alertsDiv.appendChild(alertEl);
   });
 }
 
-// Main Init Function
-async function init() {
-  try {
-    const [conditions, forecast, alerts] = await Promise.all([
-      fetchCurrentConditions(),
-      fetchForecast(),
-      fetchAlerts()
-    ]);
-    renderCurrentConditions(conditions);
-    renderForecast(forecast);
-    renderAlerts(alerts);
-  } catch (err) {
-    console.error("Error initializing app:", err);
-  }
-}
-
-init();
+// Load all data
+getWeather();
+getAirQuality();
+getAlerts();
