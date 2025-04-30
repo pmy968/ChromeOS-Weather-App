@@ -21,6 +21,24 @@ if (localStorage.getItem('darkMode') === 'true') {
   document.body.classList.add('dark');
 }
 
+const toggleButton = document.getElementById("dark-mode-toggle");
+
+toggleButton.addEventListener("click", () => {
+  document.body.classList.toggle("dark");
+  
+  // Optionally, save the theme preference in localStorage
+  const isDarkMode = document.body.classList.contains("dark");
+  localStorage.setItem("darkMode", isDarkMode ? "enabled" : "disabled");
+});
+
+// Load dark mode preference from localStorage when page loads
+document.addEventListener("DOMContentLoaded", () => {
+  const savedDarkMode = localStorage.getItem("darkMode");
+  if (savedDarkMode === "enabled") {
+    document.body.classList.add("dark");
+  }
+});
+
 // Fetch and display current weather
 function fetchCurrentWeather() {
   fetch(openWeatherURL)
